@@ -1,7 +1,6 @@
 npm install react-geocode react-google-autocomplete
  react-google-map --save
 
-// <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAhEqwDYyJ0jEtIFYo6aeL3jrdlQD8oSM4&callback=myMap"></script>
 
 # Getting Started with Create React App
 
