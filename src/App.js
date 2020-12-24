@@ -2,7 +2,9 @@ import './App.css';
 import React from 'react'
 import {withScriptjs, withGoogleMap, GoogleMap, Marker, InfoWindow} from 'react-google-maps'
 import Geocode from 'react-geocode';
-import { Descriptions, Badge } from 'antd';
+import {Descriptions, Badge} from 'antd';
+import AutoComplete from "react-google-autocomplete";
+
 Geocode.setApiKey("AIzaSyAhEqwDYyJ0jEtIFYo6aeL3jrdlQD8oSM4&callback=myMap")
 
 class App extends React.Component {
@@ -15,8 +17,8 @@ class App extends React.Component {
         zoom: 15,
         height: 400,
         mapPosition: {
-           lat: 0,
-           lng: 0
+            lat: 0,
+            lng: 0
         },
         markerPosition: {
             lat: 0,
@@ -24,6 +26,39 @@ class App extends React.Component {
         }
 
 
+    }
+
+    componentDidMount() {
+        if(navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(position => {
+                this.setState({
+                    mapPosition: {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    },
+                    markerPosition: {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    },
+                }, () => {
+                    Geocode.fromLatLng(position.coords.latitude, position.coords.longitude)
+                        .then(res => {
+                            const address = res.results[0].formatted_address,
+                                addressArray = res.results[0].address_components,
+                                city = this.getCity(addressArray),
+                                area = this.getArea(addressArray),
+                                state = this.getsState(addressArray)
+
+                            this.setState({
+                                address: (address) ? address : "",
+                                area: (area) ? area : "",
+                                city: (city) ? city : "",
+                                state: (state) ? state : "",
+                            })
+                        })
+                })
+            })
+        }
     }
 
     getCity = (addressArray) => {
@@ -38,10 +73,10 @@ class App extends React.Component {
 
     getArea = (addressArray) => {
         let area = '';
-        for (let index = 0; index < addressArray.length; index++){
+        for (let index = 0; index < addressArray.length; index++) {
             if (addressArray[index].types[0]) {
                 for (let j = 0; j < addressArray.length; j++) {
-                    if('sublocality_level_1' === addressArray[index].types[j] || 'locality' === addressArray[j].types[j]) {
+                    if ('sublocality_level_1' === addressArray[index].types[j] || 'locality' === addressArray[j].types[j]) {
                         area = addressArray[index].long_name
                         return area
                     }
@@ -51,9 +86,9 @@ class App extends React.Component {
     }
     getsState = (addressArray) => {
         let state = '';
-        for (let index = 0; index < addressArray.length; index++){
-            for (let index = 0; index < addressArray.length; index++){
-                if(addressArray[index].types[0] && 'administrative_area_level_1' === addressArray[index].types[0]) {
+        for (let index = 0; index < addressArray.length; index++) {
+            for (let index = 0; index < addressArray.length; index++) {
+                if (addressArray[index].types[0] && 'administrative_area_level_1' === addressArray[index].types[0]) {
                     state = addressArray[index].long_name
                     return state
                 }
@@ -92,66 +127,76 @@ class App extends React.Component {
             })
     }
 
-  render() {
-      const MyMapComponent = withScriptjs(withGoogleMap(props =>
-          <GoogleMap
-              defaultZoom={8}
-              defaultCenter={{ lat: this.state.mapPosition.lat, lng: this.state.mapPosition.lng }}
-          >
-           <Marker
-           draggable={true}
-           onDragEnd={this.onMarkerDragEnd}
-               position={{ lat: this.state.mapPosition.lat, lng: this.state.mapPosition.lng }}>
-               <InfoWindow>
-                   <div>
-                      hello
-                   </div>
-               </InfoWindow>
-           </Marker>
-          </GoogleMap>
-      ))
-    return (
-        <div className="App">
-            <div>
-                <Descriptions title="User Info" bordered>
-                    <Descriptions.Item label="Product">Cloud Database</Descriptions.Item>
-                    <Descriptions.Item label="Billing Mode">Prepaid</Descriptions.Item>
-                    <Descriptions.Item label="Automatic Renewal">YES</Descriptions.Item>
-                    <Descriptions.Item label="Order time">2018-04-24 18:00:00</Descriptions.Item>
-                    <Descriptions.Item label="Usage Time" span={2}>
-                        2019-04-24 18:00:00
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Status" span={3}>
-                        <Badge status="processing" text="Running" />
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Negotiated Amount">$80.00</Descriptions.Item>
-                    <Descriptions.Item label="Discount">$20.00</Descriptions.Item>
-                    <Descriptions.Item label="Official Receipts">$60.00</Descriptions.Item>
-                    <Descriptions.Item label="Config Info">
-                        Data disk type: MongoDB
-                        <br />
-                        Database version: 3.4
-                        <br />
-                        Package: dds.mongo.mid
-                        <br />
-                        Storage space: 10 GB
-                        <br />
-                        Replication factor: 3
-                        <br />
-                        Region: East China 1<br />
-                    </Descriptions.Item>
-                </Descriptions>,
-            </div>
-          <MyMapComponent
-              googleMapURL="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyAhEqwDYyJ0jEtIFYo6aeL3jrdlQD8oSM4&callback=myMap&libraries=geometry,drawing,places"
-              loadingElement ={<div style={{height: `100%`}} />}
-              containerElement={<div style={{height: `400px`}} />}
-              mapElement={<div style={{height: `100%`}} />}
-          />
+    onPlaceSelected = (place) => {
+        const address = place.formatted_address,
+            addressArray = place.address_components,
+            city = this.getCity(addressArray),
+            area = this.getArea(addressArray),
+            state = this.getsState(addressArray),
+            latValue = place.geometry.location.lat(),
+            lngValue = place.geometry.location.lng()
+        this.setState({
+            address: (address) ? address : "",
+            area: (area) ? area : "",
+            city: (city) ? city : "",
+            state: (state) ? state : "",
+            markerPosition: {
+                lat: latValue,
+                lng: lngValue
+            },
+            mapPosition: {
+                lat: latValue,
+                lng: lngValue
+            },
 
-        </div>
-    );
-  }
+        })
+    }
+
+    render() {
+        const MyMapComponent = withScriptjs(withGoogleMap(props =>
+            <GoogleMap
+                defaultZoom={8}
+                defaultCenter={{lat: this.state.mapPosition.lat, lng: this.state.mapPosition.lng}}
+            >
+                <Marker
+                    draggable={true}
+                    onDragEnd={this.onMarkerDragEnd}
+                    position={{lat: this.state.mapPosition.lat, lng: this.state.mapPosition.lng}}>
+                    <InfoWindow>
+                        <div>
+                            hello
+                        </div>
+                    </InfoWindow>
+                </Marker>
+
+                <AutoComplete
+                style={{width: "100%", height: '40px', paddingLeft: 16, marginTop: 2, marginBottom: '2rem'}}
+                types={['(regions)']}
+                onPlaceSelected={this.onPlaceSelected}
+                />
+            </GoogleMap>
+        ))
+        return (
+            <div className="App">
+                <div style={{padding: '1rem', margin: '0 auto', maxWidth: 1000}}>
+                    <h1>Google map</h1>
+                    <Descriptions bordered>
+                        <Descriptions.Item label="City">{this.state.city}</Descriptions.Item>
+                        <Descriptions.Item label="Area">{this.state.area}</Descriptions.Item>
+                        <Descriptions.Item label="State">{this.state.state}</Descriptions.Item>
+                        <Descriptions.Item label="Address">{this.state.address}</Descriptions.Item>
+                    </Descriptions>,
+                </div>
+                <MyMapComponent
+                    googleMapURL="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyAhEqwDYyJ0jEtIFYo6aeL3jrdlQD8oSM4&callback=myMap&libraries=geometry,drawing,places"
+                    loadingElement={<div style={{height: `100%`}}/>}
+                    containerElement={<div style={{height: `400px`}}/>}
+                    mapElement={<div style={{height: `100%`}}/>}
+                />
+
+            </div>
+        );
+    }
 }
 
 export default App;
